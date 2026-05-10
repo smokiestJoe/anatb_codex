@@ -334,19 +334,7 @@ button:disabled {
 }
 
 .stage.outside {
-  background-image: url("./assets/outside-barn-16bit.png");
-}
-
-.stage.outside.mat-moved-key {
-  background-image: url("./assets/outside-barn-mat-moved-key-16bit.png");
-}
-
-.stage.outside.mat-moved-empty {
-  background-image: url("./assets/outside-barn-mat-moved-empty-16bit.png");
-}
-
-.stage.outside.door-unlocked {
-  background-image: url("./assets/outside-barn-unlocked-16bit.png");
+  background-image: url("./assets/outside-barn-master.png");
 }
 
 .stage.hall {
@@ -518,6 +506,13 @@ button:disabled {
 
 .hotspot:focus-visible {
   border-color: var(--bone);
+}
+
+.object-layer {
+  position: absolute;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .asset {

@@ -58,13 +58,13 @@ const rooms = {
         id: "barnDoor",
         name: "Barn Door",
         verbs: ["push", "pull", "inspect", "open", "close", "use"],
-        rect: { left: 46.5, top: 35, width: 11, height: 27 }
+        rect: { left: 47, top: 35, width: 11, height: 32 }
       },
       {
         id: "doorMat",
         name: "Door Mat",
         verbs: ["push", "pull", "pickup", "inspect", "open"],
-        rect: { left: 42.5, top: 66.5, width: 16, height: 8 }
+        rect: { left: 44, top: 66.5, width: 16, height: 8 }
       },
       {
         id: "hiddenKey",
@@ -109,6 +109,50 @@ const rooms = {
       }
     ]
   }
+};
+
+const objectLayers = {
+  "3,0,0": [
+    {
+      id: "doorMat",
+      state: gameState => (gameState.flags.matLifted ? "tossed" : "down"),
+      assets: {
+        down: {
+          src: "./src/assets/objects/doormat-down.png",
+          rect: { left: 33.8, top: 63.2, width: 34, height: 13.7 }
+        },
+        tossed: {
+          src: "./src/assets/objects/doormat-tossed.png",
+          rect: { left: 50.2, top: 66.4, width: 38, height: 19.3 }
+        }
+      }
+    },
+    {
+      id: "hiddenKey",
+      visible: gameState => gameState.flags.matLifted && !gameState.flags.keyTaken,
+      state: () => "visible",
+      assets: {
+        visible: {
+          src: "./src/assets/objects/barn-key.png",
+          rect: { left: 42.6, top: 68.1, width: 18.5, height: 9.3 }
+        }
+      }
+    },
+    {
+      id: "barnDoorLock",
+      state: gameState => (gameState.flags.barnDoorUnlocked ? "unlocked" : "locked"),
+      assets: {
+        locked: {
+          src: "./src/assets/objects/lock-locked.png?v=3",
+          rect: { left: 52.9, top: 46.3, width: 6.9, height: 14.4 }
+        },
+        unlocked: {
+          src: "./src/assets/objects/lock-unlocked.png?v=5",
+          rect: { left: 52.9, top: 46.3, width: 6.9, height: 14.4 }
+        }
+      }
+    }
+  ]
 };
 
 let state = initialState();
@@ -848,7 +892,7 @@ function renderCaption() {
 
 function renderStage(room) {
   const objects = visibleObjects(room);
-  return el("section", { class: `stage ${room.className} ${roomStateClass(room)}` }, [
+  return el("section", { class: `stage ${room.className}` }, [
     el("div", { class: "perspective", "aria-hidden": "true" }, [
       el("div", { class: "ceiling" }),
       el("div", { class: "left-wall" }),
@@ -856,7 +900,7 @@ function renderStage(room) {
       el("div", { class: "north-wall" }),
       el("div", { class: "floor" })
     ]),
-    ...renderRoomAssets(room),
+    ...renderObjectLayers(room),
     ...objects.map(object => {
       const rect = rectForObject(object);
       return el("button", {
@@ -879,14 +923,6 @@ function rectForObject(object) {
   return object.rect;
 }
 
-function roomStateClass(room) {
-  if (room.id !== "3,0,0") return "";
-  if (state.flags.barnDoorUnlocked) return "door-unlocked";
-  if (state.flags.matLifted && state.flags.keyTaken) return "mat-moved-empty";
-  if (state.flags.matLifted) return "mat-moved-key";
-  return "mat-down";
-}
-
 function mapRoomStatus(roomId) {
   if (!state.visitedRooms.includes(roomId)) return "unknown";
   return isRoomComplete(roomId) ? "done" : "todo";
@@ -898,8 +934,22 @@ function isRoomComplete(roomId) {
   return false;
 }
 
-function renderRoomAssets(room) {
-  return [];
+function renderObjectLayers(room) {
+  const layers = objectLayers[room.id] || [];
+  return layers.flatMap(layer => {
+    if (layer.visible && !layer.visible(state)) return [];
+    const layerState = layer.state ? layer.state(state) : "default";
+    const asset = layer.assets[layerState];
+    if (!asset) return [];
+
+    return [el("img", {
+      class: `object-layer object-layer-${layer.id}`,
+      src: asset.src,
+      alt: "",
+      "aria-hidden": "true",
+      style: `left:${asset.rect.left}%;top:${asset.rect.top}%;width:${asset.rect.width}%;height:${asset.rect.height}%;`
+    })];
+  });
 }
 
 function renderVerbMenu() {
