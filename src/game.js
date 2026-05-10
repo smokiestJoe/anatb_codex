@@ -8,6 +8,7 @@ const initialState = () => ({
   roomId: "0,3,0",
   health: 100,
   activeInventoryTab: "item",
+  inventoryOpen: false,
   selectedUseItemId: null,
   selectedTargetId: null,
   caption: "The night waits politely.",
@@ -110,8 +111,115 @@ let state = initialState();
 let activeMenu = null;
 let modal = null;
 let splashTimer = null;
+let audioContext = null;
 
 const app = document.querySelector("#app");
+
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioContext) audioContext = new AudioContextClass();
+  if (audioContext.state === "suspended") audioContext.resume();
+  return audioContext;
+}
+
+function masterGain(ctx, level = 1) {
+  const gain = ctx.createGain();
+  const volume = Math.max(0, Math.min(1, state.settings.volume / 100));
+  gain.gain.value = volume * level;
+  gain.connect(ctx.destination);
+  return gain;
+}
+
+function tone(ctx, destination, frequency, start, duration, type = "sine", volume = 0.4) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(frequency, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(gain);
+  gain.connect(destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+function noise(ctx, destination, start, duration, volume = 0.3, filterFrequency = 1800) {
+  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
+
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  source.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.value = filterFrequency;
+  filter.Q.value = 0.8;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(destination);
+  source.start(start);
+  source.stop(start + duration);
+}
+
+function playSfx(name) {
+  const ctx = getAudioContext();
+  if (!ctx || state.settings.volume <= 0) return;
+  const now = ctx.currentTime;
+  const out = masterGain(ctx, 0.8);
+
+  if (name === "unlock") {
+    tone(ctx, out, 420, now, 0.08, "triangle", 0.22);
+    tone(ctx, out, 760, now + 0.08, 0.11, "triangle", 0.25);
+    tone(ctx, out, 1080, now + 0.18, 0.18, "sine", 0.18);
+    noise(ctx, out, now + 0.03, 0.12, 0.08, 3200);
+    return;
+  }
+
+  if (name === "rustle") {
+    noise(ctx, out, now, 0.18, 0.17, 1200);
+    noise(ctx, out, now + 0.12, 0.2, 0.12, 2200);
+    tone(ctx, out, 130, now + 0.04, 0.12, "sawtooth", 0.05);
+    return;
+  }
+
+  if (name === "pickup") {
+    tone(ctx, out, 520, now, 0.08, "triangle", 0.18);
+    tone(ctx, out, 920, now + 0.06, 0.12, "sine", 0.22);
+    return;
+  }
+
+  if (name === "wood") {
+    tone(ctx, out, 110, now, 0.08, "square", 0.09);
+    noise(ctx, out, now, 0.16, 0.12, 650);
+    return;
+  }
+
+  if (name === "drawer") {
+    noise(ctx, out, now, 0.24, 0.12, 900);
+    tone(ctx, out, 170, now + 0.18, 0.08, "square", 0.08);
+    return;
+  }
+
+  if (name === "fail") {
+    tone(ctx, out, 160, now, 0.15, "triangle", 0.16);
+    tone(ctx, out, 118, now + 0.12, 0.18, "triangle", 0.12);
+    return;
+  }
+
+  if (name === "inspect") {
+    tone(ctx, out, 680, now, 0.05, "sine", 0.08);
+    tone(ctx, out, 760, now + 0.05, 0.08, "sine", 0.08);
+    return;
+  }
+
+  tone(ctx, out, 320, now, 0.06, "triangle", 0.1);
+}
 
 function saveToSlot(slot) {
   const payload = {
@@ -262,33 +370,39 @@ function pickupObject(objectId) {
     state.flags.keyTaken = true;
     addInventory("barnKey");
     setCaption("You pick up the barn key. It knows exactly which lock it wants.");
+    playSfx("pickup");
     saveToSlot(AUTO_SLOT);
     return;
   }
 
   if (objectId === "doorMat") {
     setCaption("It is too damp and loyal to take with you.");
+    playSfx("fail");
     return;
   }
 
   if (objectId === "coatShadow") {
     setCaption("The coat refuses to become luggage.");
+    playSfx("rustle");
     return;
   }
 
   setCaption("That does not seem portable.");
+  playSfx("fail");
 }
 
 function openObject(objectId) {
   if (objectId === "doorMat") {
     state.flags.matLifted = true;
     setCaption("You lift the mat. A key glints beneath it with theatrical timing.");
+    playSfx("rustle");
     return;
   }
 
   if (objectId === "barnDoor") {
     if (!state.flags.barnDoorUnlocked) {
       setCaption("The barn door is locked. The keyhole looks smug.");
+      playSfx("fail");
       return;
     }
     moveToRoom("1,3,0");
@@ -300,18 +414,22 @@ function openObject(objectId) {
       state.flags.hallDrawerOpen = true;
       addInventory("receiptNote");
       setCaption("The drawer slides open. Inside is a faded receipt.");
+      playSfx("drawer");
     } else {
       setCaption("The drawer is already open, revealing its shallow wooden mouth.");
+      playSfx("wood");
     }
     return;
   }
 
   if (objectId === "northExit") {
     setCaption("That part of the barn has not been drawn into the world yet.");
+    playSfx("fail");
     return;
   }
 
   setCaption("It does not open from this angle.");
+  playSfx("fail");
 }
 
 function closeObject(objectId) {
@@ -319,18 +437,22 @@ function closeObject(objectId) {
     if (state.flags.hallDrawerOpen) {
       state.flags.hallDrawerOpen = false;
       setCaption("You close the drawer. Something inside taps once.");
+      playSfx("drawer");
     } else {
       setCaption("It is already closed.");
+      playSfx("fail");
     }
     return;
   }
 
   if (objectId === "barnDoor") {
     setCaption("You are on the wrong side for a meaningful close.");
+    playSfx("fail");
     return;
   }
 
   setCaption("Closed is not a state it currently understands.");
+  playSfx("fail");
 }
 
 function beginUseObject(objectId) {
@@ -342,10 +464,12 @@ function beginUseObject(objectId) {
 
   if (objectId === "barnDoor") {
     setCaption("Use what with the door?");
+    playSfx("inspect");
     return;
   }
 
   setCaption("You use your best judgment. It remains unimpressed.");
+  playSfx("fail");
 }
 
 function inspectObject(objectId) {
@@ -365,17 +489,20 @@ function inspectObject(objectId) {
     coatShadow: "A coat or a shadow pretending to be one. Both options are bad tailoring."
   };
   setCaption(lines[objectId] || "There is nothing useful to learn from that.");
+  playSfx("inspect");
 }
 
 function pushPullObject(verb, objectId) {
   if (objectId === "doorMat") {
     state.flags.matLifted = true;
+    playSfx("rustle");
     return verb === "pull"
       ? "You pull the mat aside. A key waits underneath."
       : "You shove the mat into a wrinkle. A key catches the light.";
   }
 
   if (objectId === "barnDoor") {
+    playSfx(state.flags.barnDoorUnlocked ? "wood" : "fail");
     return state.flags.barnDoorUnlocked
       ? "The door swings inward with a long wooden complaint."
       : "The locked door shudders, but stays shut.";
@@ -384,9 +511,11 @@ function pushPullObject(verb, objectId) {
   if (objectId === "hallDrawer") {
     state.flags.hallDrawerOpen = true;
     addInventory("receiptNote");
+    playSfx("drawer");
     return "The drawer opens enough to show its contents.";
   }
 
+  playSfx(objectId === "coatShadow" ? "rustle" : "wood");
   return `You ${verb} it. The barn files a silent objection.`;
 }
 
@@ -394,12 +523,14 @@ function useItemWithTarget(itemId, targetId) {
   if (itemId === "barnKey" && targetId === "barnDoor") {
     state.flags.barnDoorUnlocked = true;
     setCaption("The key turns once. The barn door unlocks and exhales.");
+    playSfx("unlock");
     saveToSlot(AUTO_SLOT);
     return;
   }
 
   const item = itemLibrary[itemId];
   setCaption(`${item?.name || "That"} has no useful effect on ${targetLabel(targetId)} yet.`);
+  playSfx("fail");
 }
 
 function targetLabel(targetId) {
@@ -411,6 +542,7 @@ function moveToRoom(roomId) {
   if (!rooms[roomId]) return;
   state.roomId = roomId;
   setCaption(rooms[roomId].description);
+  playSfx("wood");
   saveToSlot(AUTO_SLOT);
 }
 
@@ -440,6 +572,7 @@ function openInventoryItem(id) {
     };
   }
   activeMenu = null;
+  state.inventoryOpen = false;
   render();
 }
 
@@ -559,18 +692,17 @@ function renderIntro() {
 function renderGame() {
   const room = getCurrentRoom();
   app.append(el("section", { class: "screen game-screen" }, [
-    renderHud(room),
     el("div", { class: "stage-wrap" }, [
       renderStage(room),
+      renderInventoryButton(),
+      state.inventoryOpen ? renderInventoryOverlay() : "",
       state.selectedUseItemId ? el("div", {
         class: "use-banner",
         text: `Using ${itemLibrary[state.selectedUseItemId].name}. Pick a target.`
       }) : "",
       activeMenu ? renderVerbMenu() : "",
       modal ? renderModalLayer() : ""
-    ]),
-    el("div", { class: "caption", text: state.caption }),
-    renderInventory()
+    ])
   ]));
 }
 
@@ -588,6 +720,10 @@ function renderHud(room) {
       ])
     ])
   ]);
+}
+
+function renderCaption() {
+  return el("div", { class: "caption", text: state.caption });
 }
 
 function renderStage(room) {
@@ -610,7 +746,9 @@ function renderStage(room) {
         style: `left:${rect.left}%;top:${rect.top}%;width:${rect.width}%;height:${rect.height}%;`,
         onclick: event => selectObject(object.id, event.clientX, event.clientY)
       });
-    })
+    }),
+    renderHud(room),
+    renderCaption()
   ]);
 }
 
@@ -655,14 +793,29 @@ function verbLabel(verb) {
   return verb.charAt(0).toUpperCase() + verb.slice(1);
 }
 
-function renderInventory() {
+function renderInventoryButton() {
+  return el("button", {
+    class: "inventory-toggle",
+    title: "Inventory",
+    "aria-label": "Inventory",
+    text: "☰",
+    onclick: () => {
+      state.inventoryOpen = !state.inventoryOpen;
+      activeMenu = null;
+      render();
+    }
+  });
+}
+
+function renderInventoryOverlay() {
   const currentItems = state.inventory[state.activeInventoryTab];
-  return el("aside", { class: "inventory" }, [
+  return el("aside", { class: "inventory-panel" }, [
     el("div", { class: "inventory-tabs" }, [
-      inventoryTabButton("item", "Items"),
-      inventoryTabButton("food", "Food"),
-      inventoryTabButton("note", "Notes")
+      inventoryTabButton("item", "▣", "Items"),
+      inventoryTabButton("food", "◍", "Food"),
+      inventoryTabButton("note", "◇", "Notes")
     ]),
+    el("div", { class: "inventory-title", text: inventoryTabTitle(state.activeInventoryTab) }),
     el("div", { class: "inventory-list" }, currentItems.length
       ? currentItems.map(item => el("button", {
         class: "inventory-card",
@@ -675,15 +828,21 @@ function renderInventory() {
   ]);
 }
 
-function inventoryTabButton(tab, label) {
+function inventoryTabButton(tab, icon, label) {
   return el("button", {
     class: state.activeInventoryTab === tab ? "active" : "",
-    text: label,
+    title: label,
+    "aria-label": label,
+    text: icon,
     onclick: () => {
       state.activeInventoryTab = tab;
       render();
     }
   });
+}
+
+function inventoryTabTitle(tab) {
+  return { item: "Items", food: "Food", note: "Notes" }[tab];
 }
 
 function renderModalLayer() {
