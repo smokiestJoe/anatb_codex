@@ -70,7 +70,7 @@ const rooms = {
         id: "hiddenKey",
         name: "Door Key",
         verbs: ["pickup", "inspect"],
-        rect: { left: 47, top: 71, width: 8, height: 5 },
+        rect: { left: 47, top: 72.5, width: 8, height: 5 },
         visible: state => state.flags.matLifted && !state.flags.keyTaken
       }
     ]
