@@ -64,7 +64,7 @@ const rooms = {
         id: "doorMat",
         name: "Door Mat",
         verbs: ["push", "pull", "pickup", "inspect", "open"],
-        rect: { left: 44, top: 66.5, width: 16, height: 8 }
+        rect: { left: 44.5, top: 66.5, width: 16, height: 8 }
       },
       {
         id: "hiddenKey",
@@ -119,7 +119,7 @@ const objectLayers = {
       assets: {
         down: {
           src: "./src/assets/objects/doormat-down.png",
-          rect: { left: 33.8, top: 63.2, width: 34, height: 13.7 }
+          rect: { left: 34.4, top: 63.2, width: 34, height: 13.7 }
         },
         tossed: {
           src: "./src/assets/objects/doormat-tossed.png",
