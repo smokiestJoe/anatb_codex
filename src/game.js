@@ -58,19 +58,19 @@ const rooms = {
         id: "barnDoor",
         name: "Barn Door",
         verbs: ["push", "pull", "inspect", "open", "close", "use"],
-        rect: { left: 44, top: 32.5, width: 12.5, height: 31.5 }
+        rect: { left: 46.5, top: 35, width: 11, height: 27 }
       },
       {
         id: "doorMat",
         name: "Door Mat",
         verbs: ["push", "pull", "pickup", "inspect", "open"],
-        rect: { left: 42.3, top: 66.2, width: 15.6, height: 7.2 }
+        rect: { left: 42.5, top: 66.5, width: 16, height: 8 }
       },
       {
         id: "hiddenKey",
         name: "Door Key",
         verbs: ["pickup", "inspect"],
-        rect: { left: 47.4, top: 70, width: 6.5, height: 4.5 },
+        rect: { left: 47, top: 71, width: 8, height: 5 },
         visible: state => state.flags.matLifted && !state.flags.keyTaken
       }
     ]
@@ -873,7 +873,7 @@ function renderStage(room) {
 
 function rectForObject(object) {
   if (state.roomId === "3,0,0" && object.id === "doorMat" && state.flags.matLifted) {
-    return { left: 58, top: 72.5, width: 18, height: 10.5 };
+    return { left: 59, top: 72, width: 18, height: 12 };
   }
 
   return object.rect;
