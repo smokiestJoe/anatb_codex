@@ -473,6 +473,12 @@ function pickupObject(objectId) {
 
 function openObject(objectId) {
   if (objectId === "doorMat") {
+    if (state.flags.matLifted) {
+      setCaption("You already moved it");
+      playSfx("fail");
+      return;
+    }
+
     state.flags.matLifted = true;
     setCaption("You lift the mat. A key glints beneath it with theatrical timing.");
     playSfx("rustle");
@@ -574,6 +580,11 @@ function inspectObject(objectId) {
 
 function pushPullObject(verb, objectId) {
   if (objectId === "doorMat") {
+    if (state.flags.matLifted) {
+      playSfx("fail");
+      return "You already moved it";
+    }
+
     state.flags.matLifted = true;
     playSfx("rustle");
     return verb === "pull"
@@ -917,7 +928,7 @@ function renderStage(room) {
 
 function rectForObject(object) {
   if (state.roomId === "3,0,0" && object.id === "doorMat" && state.flags.matLifted) {
-    return { left: 59, top: 72, width: 18, height: 12 };
+    return { left: 61, top: 72, width: 13, height: 12 };
   }
 
   return object.rect;
