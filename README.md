@@ -4,7 +4,14 @@ An eerie, surreal puzzle adventure prototype built as a mobile/tablet-first brow
 
 ## Run
 
-Open `index.html` in a browser, or serve the folder with any static server.
+Install dependencies, then run the Vite dev server:
+
+```sh
+npm install
+npm run dev
+```
+
+The app runs at the local URL printed by Vite, usually `http://127.0.0.1:5173/`.
 
 ## Current Slice
 
