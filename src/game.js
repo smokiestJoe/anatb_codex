@@ -5,13 +5,17 @@ const WORLD_SIZE = { x: 7, y: 5, z: 3 };
 
 const initialState = () => ({
   screen: "splash",
-  roomId: "0,3,0",
+  gameView: "room",
+  mapFloor: 0,
+  roomId: "3,0,0",
+  visitedRooms: ["3,0,0"],
   health: 100,
   activeInventoryTab: "item",
   inventoryOpen: false,
   selectedUseItemId: null,
   selectedTargetId: null,
   caption: "The night waits politely.",
+  captionVisible: true,
   settings: { volume: 70, subtitles: true },
   inventory: {
     item: [],
@@ -42,13 +46,13 @@ const itemLibrary = {
 };
 
 const rooms = {
-  "0,3,0": {
-    id: "0,3,0",
+  "3,0,0": {
+    id: "3,0,0",
     name: "Outside the Barn",
     className: "outside",
-    position: { x: 0, y: 3, z: 0 },
+    position: { x: 3, y: 0, z: 0 },
     description: "The barn leans toward you, as though listening through the rain.",
-    exits: { north: "1,3,0" },
+    exits: { north: "3,1,0" },
     objects: [
       {
         id: "barnDoor",
@@ -71,13 +75,13 @@ const rooms = {
       }
     ]
   },
-  "1,3,0": {
-    id: "1,3,0",
+  "3,1,0": {
+    id: "3,1,0",
     name: "Entrance Hall",
     className: "hall",
-    position: { x: 1, y: 3, z: 0 },
+    position: { x: 3, y: 1, z: 0 },
     description: "Inside, the barn smells of dust, damp rope, and patient old wood.",
-    exits: { south: "0,3,0" },
+    exits: { south: "3,0,0" },
     objects: [
       {
         id: "northExit",
@@ -112,6 +116,7 @@ let activeMenu = null;
 let modal = null;
 let splashTimer = null;
 let audioContext = null;
+let captionTimer = null;
 
 const app = document.querySelector("#app");
 
@@ -237,7 +242,7 @@ function saveToSlot(slot) {
 function loadSlot(slot) {
   const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`);
   if (!raw) return false;
-  const payload = JSON.parse(raw);
+  const payload = normalizeSavePayload(JSON.parse(raw));
   state = { ...initialState(), ...payload.state, screen: "game" };
   activeMenu = null;
   modal = null;
@@ -250,10 +255,33 @@ function getSlot(slot) {
   const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`);
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    return normalizeSavePayload(JSON.parse(raw));
   } catch {
     return null;
   }
+}
+
+function normalizeSavePayload(payload) {
+  if (!payload?.state) return payload;
+  return {
+    ...payload,
+    state: normalizeState(payload.state)
+  };
+}
+
+function normalizeState(savedState) {
+  const legacyRoomIds = {
+    "0,3,0": "3,0,0",
+    "1,3,0": "3,1,0"
+  };
+  const roomId = legacyRoomIds[savedState.roomId] || savedState.roomId;
+  const visitedRooms = (savedState.visitedRooms || [roomId]).map(id => legacyRoomIds[id] || id);
+  return {
+    ...savedState,
+    roomId,
+    visitedRooms: [...new Set(visitedRooms)],
+    mapFloor: savedState.mapFloor ?? rooms[roomId]?.position.z ?? 0
+  };
 }
 
 function hasAnySave() {
@@ -280,11 +308,13 @@ function newGame() {
   state.screen = "intro";
   activeMenu = null;
   modal = null;
+  clearTimeout(captionTimer);
   render();
 }
 
 function beginGame() {
   state.screen = "game";
+  state.gameView = "room";
   setCaption(rooms[state.roomId].description);
   saveToSlot(AUTO_SLOT);
   render();
@@ -292,6 +322,12 @@ function beginGame() {
 
 function setCaption(message) {
   state.caption = message;
+  state.captionVisible = true;
+  clearTimeout(captionTimer);
+  captionTimer = setTimeout(() => {
+    state.captionVisible = false;
+    if (state.screen === "game") render();
+  }, 5200);
 }
 
 function getCurrentRoom() {
@@ -333,7 +369,7 @@ function selectObject(objectId, x, y) {
   }
 
   if (objectId === "barnDoor" && state.flags.barnDoorUnlocked) {
-    moveToRoom("1,3,0");
+    moveToRoom("3,1,0");
     render();
     return;
   }
@@ -405,7 +441,7 @@ function openObject(objectId) {
       playSfx("fail");
       return;
     }
-    moveToRoom("1,3,0");
+    moveToRoom("3,1,0");
     return;
   }
 
@@ -541,6 +577,7 @@ function targetLabel(targetId) {
 function moveToRoom(roomId) {
   if (!rooms[roomId]) return;
   state.roomId = roomId;
+  if (!state.visitedRooms.includes(roomId)) state.visitedRooms.push(roomId);
   setCaption(rooms[roomId].description);
   playSfx("wood");
   saveToSlot(AUTO_SLOT);
@@ -643,6 +680,7 @@ function render() {
   if (state.screen === "menu") renderMenu();
   if (state.screen === "intro") renderIntro();
   if (state.screen === "game") renderGame();
+  app.append(renderOrientationGate());
 }
 
 function renderSplash() {
@@ -658,8 +696,11 @@ function renderSplash() {
 function renderMenu() {
   app.append(el("section", { class: "screen menu-screen" }, [
     el("div", { class: "main-menu" }, [
-      el("h1", { class: "main-title", text: "A Night at the Barn" }),
-      el("p", { class: "menu-subtitle", text: "A crooked puzzle adventure in three dimensions and one bad evening." }),
+      el("h1", {
+        class: "main-title",
+        html: "<span>A Night</span><span>at the</span><span>BARN</span>"
+      }),
+      el("p", { class: "menu-subtitle", text: "It’s not a puzzle. It’s a trap." }),
       el("div", { class: "menu-actions" }, [
         el("button", { text: "New Game", onclick: newGame }),
         el("button", { text: "Continue", disabled: !hasAnySave(), onclick: () => loadSlot(AUTO_SLOT) || openLoadMenu() }),
@@ -693,36 +734,115 @@ function renderGame() {
   const room = getCurrentRoom();
   app.append(el("section", { class: "screen game-screen" }, [
     el("div", { class: "stage-wrap" }, [
-      renderStage(room),
+      state.gameView === "map" ? renderMapScreen() : renderStage(room),
+      renderSettingsButton(),
+      renderHealth(),
+      renderMapButton(),
       renderInventoryButton(),
+      state.inventoryOpen ? renderInventoryDismiss() : "",
       state.inventoryOpen ? renderInventoryOverlay() : "",
       state.selectedUseItemId ? el("div", {
         class: "use-banner",
         text: `Using ${itemLibrary[state.selectedUseItemId].name}. Pick a target.`
       }) : "",
+      activeMenu ? renderActionDismiss() : "",
       activeMenu ? renderVerbMenu() : "",
       modal ? renderModalLayer() : ""
     ])
   ]));
 }
 
-function renderHud(room) {
-  return el("header", { class: "hud" }, [
-    el("button", { class: "icon-button", title: "Settings", "aria-label": "Settings", text: "⚙", onclick: openSettings }),
-    el("div", { class: "room-label", text: `${room.name} (${room.id})` }),
-    el("div", { class: "health" }, [
-      el("div", { class: "health-label" }, [
-        el("span", { text: "Health" }),
-        el("span", { text: `${state.health}` })
+function renderSettingsButton() {
+  return el("button", { class: "corner-button settings-toggle", title: "Settings", "aria-label": "Settings", text: "⚙", onclick: openSettings });
+}
+
+function renderHealth() {
+  return el("div", { class: "health" }, [
+    el("div", { class: "health-label" }, [
+      el("span", { text: "Health" }),
+      el("span", { text: `${state.health}` })
+    ]),
+    el("div", { class: "health-track" }, [
+      el("div", {
+        class: "health-fill",
+        style: `width: ${state.health}%; background-color: hsl(${state.health * 1.2}, 58%, 55%);`
+      })
+    ])
+  ]);
+}
+
+function renderMapButton() {
+  const isMap = state.gameView === "map";
+  return el("button", {
+    class: "corner-button map-toggle",
+    title: isMap ? "GUI" : "Map",
+    "aria-label": isMap ? "GUI" : "Map",
+    text: isMap ? "▣" : "⌖",
+    onclick: () => {
+      state.gameView = isMap ? "room" : "map";
+      if (!isMap) state.mapFloor = rooms[state.roomId].position.z;
+      activeMenu = null;
+      state.inventoryOpen = false;
+      render();
+    }
+  });
+}
+
+function renderMapScreen() {
+  const floor = state.mapFloor;
+  const cells = [];
+  for (let y = WORLD_SIZE.y - 1; y >= 0; y -= 1) {
+    for (let x = 0; x < WORLD_SIZE.x; x += 1) {
+      const id = `${x},${y},${floor}`;
+      const room = rooms[id];
+      const visited = state.visitedRooms.includes(id);
+      cells.push(el("button", {
+        class: `map-cell ${mapRoomStatus(id)} ${id === state.roomId ? "current" : ""}`,
+        disabled: !room,
+        title: room ? `${room.name} (${id})` : `Unknown (${id})`,
+        "aria-label": room ? `${room.name} ${id}` : `Unknown room ${id}`,
+        onclick: () => {
+          if (!visited || !room) return;
+          state.roomId = id;
+          state.gameView = "room";
+          setCaption(room.description);
+          render();
+        }
+      }, [
+        el("strong", { text: room && visited ? room.name : "?" }),
+        el("span", { text: id })
+      ]));
+    }
+  }
+
+  return el("section", { class: "stage map-stage" }, [
+    el("div", { class: "map-panel" }, [
+      el("div", { class: "map-heading" }, [
+        el("div", {}, [
+          el("h2", { text: "Barn Map" }),
+          el("p", { text: `Current room: ${rooms[state.roomId].name} (${state.roomId})` })
+        ]),
+        el("button", {
+          class: "floor-button",
+          text: `Floor ${floor + 1} / ${WORLD_SIZE.z}`,
+          onclick: () => {
+            state.mapFloor = (state.mapFloor + 1) % WORLD_SIZE.z;
+            render();
+          }
+        })
       ]),
-      el("div", { class: "health-track" }, [
-        el("div", { class: "health-fill", style: `width: ${state.health}%` })
+      el("div", { class: "map-grid" }, cells),
+      el("div", { class: "map-legend" }, [
+        el("span", { class: "legend unknown", text: "Unvisited" }),
+        el("span", { class: "legend todo", text: "To do" }),
+        el("span", { class: "legend done", text: "Complete" })
       ])
     ])
   ]);
 }
 
 function renderCaption() {
+  if (!state.captionVisible) return "";
   return el("div", { class: "caption", text: state.caption });
 }
 
@@ -747,13 +867,12 @@ function renderStage(room) {
         onclick: event => selectObject(object.id, event.clientX, event.clientY)
       });
     }),
-    renderHud(room),
     renderCaption()
   ]);
 }
 
 function rectForObject(object) {
-  if (state.roomId === "0,3,0" && object.id === "doorMat" && state.flags.matLifted) {
+  if (state.roomId === "3,0,0" && object.id === "doorMat" && state.flags.matLifted) {
     return { left: 58, top: 72.5, width: 18, height: 10.5 };
   }
 
@@ -761,11 +880,22 @@ function rectForObject(object) {
 }
 
 function roomStateClass(room) {
-  if (room.id !== "0,3,0") return "";
+  if (room.id !== "3,0,0") return "";
   if (state.flags.barnDoorUnlocked) return "door-unlocked";
   if (state.flags.matLifted && state.flags.keyTaken) return "mat-moved-empty";
   if (state.flags.matLifted) return "mat-moved-key";
   return "mat-down";
+}
+
+function mapRoomStatus(roomId) {
+  if (!state.visitedRooms.includes(roomId)) return "unknown";
+  return isRoomComplete(roomId) ? "done" : "todo";
+}
+
+function isRoomComplete(roomId) {
+  if (roomId === "3,0,0") return state.flags.barnDoorUnlocked;
+  if (roomId === "3,1,0") return state.flags.hallDrawerOpen;
+  return false;
 }
 
 function renderRoomAssets(room) {
@@ -789,6 +919,17 @@ function renderVerbMenu() {
   ]);
 }
 
+function renderActionDismiss() {
+  return el("button", {
+    class: "action-dismiss",
+    "aria-label": "Close object menu",
+    onclick: () => {
+      activeMenu = null;
+      render();
+    }
+  });
+}
+
 function verbLabel(verb) {
   return verb.charAt(0).toUpperCase() + verb.slice(1);
 }
@@ -802,6 +943,17 @@ function renderInventoryButton() {
     onclick: () => {
       state.inventoryOpen = !state.inventoryOpen;
       activeMenu = null;
+      render();
+    }
+  });
+}
+
+function renderInventoryDismiss() {
+  return el("button", {
+    class: "inventory-dismiss",
+    "aria-label": "Close inventory",
+    onclick: () => {
+      state.inventoryOpen = false;
       render();
     }
   });
@@ -843,6 +995,15 @@ function inventoryTabButton(tab, icon, label) {
 
 function inventoryTabTitle(tab) {
   return { item: "Items", food: "Food", note: "Notes" }[tab];
+}
+
+function renderOrientationGate() {
+  return el("div", { class: "orientation-gate" }, [
+    el("div", { class: "orientation-card" }, [
+      el("strong", { text: "Rotate to landscape" }),
+      el("span", { text: "A Night at the Barn plays in landscape only." })
+    ])
+  ]);
 }
 
 function renderModalLayer() {

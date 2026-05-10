@@ -79,6 +79,16 @@ button:disabled {
   padding: 22px;
 }
 
+.menu-screen {
+  position: relative;
+  place-items: start start;
+  padding: clamp(28px, 5vw, 78px);
+  background:
+    linear-gradient(90deg, rgba(6, 7, 8, 0.92) 0%, rgba(6, 7, 8, 0.62) 36%, rgba(6, 7, 8, 0.08) 72%),
+    linear-gradient(180deg, rgba(6, 7, 8, 0.12), rgba(6, 7, 8, 0.7)),
+    url("./assets/title-background.png") center / cover no-repeat;
+}
+
 .brand-lockup {
   text-align: center;
   transform: rotate(-2deg);
@@ -118,28 +128,47 @@ button:disabled {
 }
 
 .main-menu {
-  width: min(92vw, 620px);
+  width: min(94vw, 980px);
   display: grid;
-  gap: 16px;
-  text-align: center;
+  gap: 20px;
+  text-align: left;
+  align-self: start;
 }
 
 .main-title {
-  font-size: clamp(2.4rem, 9vw, 6.7rem);
-  line-height: 0.95;
+  display: grid;
+  gap: 0;
+  font-size: clamp(3.5rem, 9vw, 8.5rem);
+  line-height: 0.82;
   transform: rotate(-1deg);
 }
 
+.main-title span:nth-child(2) {
+  font-size: 0.48em;
+  margin-left: 0.1em;
+}
+
+.main-title span:nth-child(3) {
+  color: #f4bd50;
+  font-size: 1.08em;
+}
+
 .menu-subtitle {
-  margin: 0 0 12px;
-  color: #d3d798;
-  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  margin: 0 0 8px;
+  color: #f6e6a8;
+  font-size: clamp(1.1rem, 2.5vw, 1.65rem);
+  text-shadow: 2px 2px 0 var(--line);
 }
 
 .menu-actions {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(28px, 7vh, 78px);
+  transform: translateX(-50%);
   display: grid;
+  grid-template-columns: repeat(3, minmax(132px, 1fr));
   gap: 12px;
-  width: min(420px, 100%);
+  width: min(720px, calc(100vw - 44px));
   margin: 0 auto;
 }
 
@@ -157,44 +186,46 @@ button:disabled {
   display: block;
 }
 
-.hud {
+.hud,
+.icon-button,
+.room-label {
+  display: none;
+}
+
+.corner-button {
   position: absolute;
-  left: 50%;
-  top: 10px;
-  transform: translateX(-50%);
-  z-index: 8;
-  width: calc(100% - 20px);
+  z-index: 11;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
+  place-items: center;
+  font-size: 1.55rem;
+  background: rgba(49, 29, 62, 0.9);
+}
+
+.settings-toggle {
+  left: max(18px, env(safe-area-inset-left));
+  top: max(18px, env(safe-area-inset-top));
+}
+
+.map-toggle {
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.health {
+  position: absolute;
+  right: max(18px, env(safe-area-inset-right));
+  top: max(18px, env(safe-area-inset-top));
+  z-index: 11;
+  width: min(14vw, 105px);
+  min-width: 86px;
+  padding: 6px 8px;
   border: 2px solid rgba(16, 10, 21, 0.72);
   border-radius: 8px;
   background: rgba(12, 8, 16, 0.68);
   backdrop-filter: blur(2px);
-}
-
-.icon-button {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-size: 1.25rem;
-}
-
-.room-label {
-  justify-self: center;
-  padding: 4px 10px;
-  color: var(--paper);
-  text-shadow: 2px 2px 0 var(--line);
-  text-align: center;
-}
-
-.health {
-  width: min(28vw, 210px);
-  min-width: 116px;
 }
 
 .health-label {
@@ -207,13 +238,12 @@ button:disabled {
 .health-track {
   height: 14px;
   border: 2px solid var(--line);
-  background: #4a1720;
+  background: #271116;
 }
 
 .health-fill {
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #75cf6d, #d8de65);
 }
 
 .stage-wrap {
@@ -321,6 +351,126 @@ button:disabled {
 
 .stage.hall {
   background-image: url("./assets/entrance-hall-16bit.png");
+}
+
+.map-stage {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(243, 182, 79, 0.12), transparent 42%),
+    linear-gradient(135deg, #1b1216, #2d1a13 54%, #120b0f);
+}
+
+.map-panel {
+  width: min(68%, 860px);
+  max-height: 86%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 18px;
+  border: 4px solid var(--line);
+  border-radius: 8px;
+  color: var(--paper);
+  background:
+    linear-gradient(180deg, rgba(49, 29, 62, 0.92), rgba(22, 14, 24, 0.95)),
+    repeating-linear-gradient(90deg, rgba(255, 232, 166, 0.04) 0 2px, transparent 2px 22px);
+  box-shadow: 0 14px 0 rgba(0, 0, 0, 0.35);
+}
+
+.map-heading h2,
+.map-heading p {
+  margin: 0;
+}
+
+.map-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.map-heading h2 {
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+}
+
+.map-heading p {
+  color: #d8c998;
+}
+
+.floor-button {
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.map-cell {
+  min-height: 46px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: none;
+  text-align: center;
+}
+
+.map-cell span {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.map-cell.unknown {
+  color: #c7c0c9;
+  background: #55515b;
+}
+
+.map-cell.todo {
+  background: #8f3137;
+}
+
+.map-cell.done {
+  background: #477b47;
+}
+
+.map-cell.current {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.legend {
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+}
+
+.legend.unknown {
+  background: #55515b;
+}
+
+.legend.todo {
+  background: #8f3137;
+}
+
+.legend.done {
+  background: #477b47;
 }
 
 .outside .left-wall,
@@ -502,6 +652,7 @@ button:disabled {
   border-radius: 8px;
   text-align: center;
   pointer-events: none;
+  animation: captionFade 5.2s ease forwards;
 }
 
 .inventory-toggle {
@@ -516,6 +667,31 @@ button:disabled {
   place-items: center;
   font-size: 1.55rem;
   background: rgba(49, 29, 62, 0.9);
+}
+
+.inventory-dismiss,
+.action-dismiss {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.inventory-dismiss:hover,
+.inventory-dismiss:focus-visible,
+.action-dismiss:hover,
+.action-dismiss:focus-visible {
+  background: transparent;
+  outline: 0;
+  box-shadow: none;
+}
+
+.action-dismiss {
+  z-index: 19;
 }
 
 .inventory-panel {
@@ -730,6 +906,27 @@ button:disabled {
   text-align: center;
 }
 
+.orientation-gate {
+  display: none;
+}
+
+.orientation-card {
+  display: grid;
+  gap: 10px;
+  max-width: 320px;
+  padding: 18px;
+  border: 3px solid var(--line);
+  border-radius: 8px;
+  color: var(--paper);
+  background: rgba(28, 20, 35, 0.96);
+  text-align: center;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.42);
+}
+
+.orientation-card strong {
+  font-size: 1.35rem;
+}
+
 @keyframes smokeIn {
   from {
     opacity: 0;
@@ -750,21 +947,37 @@ button:disabled {
   }
 }
 
+@keyframes captionFade {
+  0%,
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (max-width: 760px) {
-  .hud {
-    gap: 8px;
-    grid-template-columns: auto 1fr;
-    top: 6px;
-    padding: 6px;
+  .menu-screen {
+    padding: 22px;
   }
 
-  .room-label {
-    font-size: 0.72rem;
+  .main-title {
+    font-size: clamp(3rem, 17vw, 5.2rem);
+  }
+
+  .menu-actions {
+    bottom: 22px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .menu-actions button {
+    padding-inline: 8px;
+    font-size: 0.86rem;
   }
 
   .health {
-    grid-column: 1 / -1;
-    width: 100%;
+    width: 86px;
   }
 
   .health-label {
@@ -788,11 +1001,25 @@ button:disabled {
   }
 }
 
-@media (orientation: landscape) and (max-height: 540px) {
-  .hud {
-    width: calc(100% - 18px);
+@media (orientation: portrait) {
+  .screen {
+    filter: blur(2px) brightness(0.55);
+    pointer-events: none;
   }
 
+  .orientation-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+      repeating-linear-gradient(90deg, #2d1a13 0 34px, #41251a 34px 70px, #1d110d 70px 76px);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
   .caption {
     bottom: 14px;
     width: min(62%, 720px);

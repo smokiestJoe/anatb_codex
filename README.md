@@ -14,8 +14,8 @@ Open `index.html` in a browser, or serve the folder with any static server.
 - Four save slots: Auto plus three manual slots
 - 7x5x3 world grid model
 - Fixed south-wall-looking-north room perspective
-- Room `0,3,0`: outside the barn
-- Room `1,3,0`: entrance hall
+- Room `3,0,0`: outside the barn
+- Room `3,1,0`: entrance hall
 - Door mat interaction, hidden key, and `USE KEY WITH DOOR`
 - Context action menu: Push, Pull, Pickup, Inspect, Open, Close, Use
 - Inventory tabs: Items, Food, Notes
