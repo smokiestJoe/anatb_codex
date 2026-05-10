@@ -28,7 +28,7 @@ export function Stage({ room, gameState, onSelectObject }) {
           />
         );
       })}
-      {gameState.captionVisible && <div className="caption">{gameState.caption}</div>}
+      {gameState.captionVisible && <div key={gameState.captionId} className="caption">{gameState.caption}</div>}
     </section>
   );
 }

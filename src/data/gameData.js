@@ -21,6 +21,7 @@ export const initialState = () => ({
   selectedUseItemId: null,
   selectedTargetId: null,
   caption: "The night waits politely.",
+  captionId: 0,
   captionVisible: true,
   settings: { volume: 70, subtitles: true },
   inventory: {

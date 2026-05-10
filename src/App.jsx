@@ -26,7 +26,12 @@ export function App() {
   }, []);
 
   const setCaption = useCallback((message) => {
-    setGameState(previous => ({ ...previous, caption: message, captionVisible: true }));
+    setGameState(previous => ({
+      ...previous,
+      caption: message,
+      captionId: previous.captionId + 1,
+      captionVisible: true
+    }));
     scheduleCaptionFade();
   }, [scheduleCaptionFade]);
 
@@ -35,7 +40,12 @@ export function App() {
   }, [gameState.settings]);
 
   const setGameStateWithCaption = useCallback((nextState, message) => {
-    setGameState({ ...nextState, caption: message, captionVisible: true });
+    setGameState(previous => ({
+      ...nextState,
+      caption: message,
+      captionId: previous.captionId + 1,
+      captionVisible: true
+    }));
     scheduleCaptionFade();
   }, [scheduleCaptionFade]);
 
@@ -87,6 +97,7 @@ export function App() {
     nextState.screen = "game";
     nextState.gameView = "room";
     nextState.caption = rooms[nextState.roomId].description;
+    nextState.captionId = gameState.captionId + 1;
     nextState.captionVisible = true;
     saveToSlot(AUTO_SLOT, nextState);
     setGameState(nextState);
@@ -99,6 +110,7 @@ export function App() {
     setActiveMenu(null);
     setModal(null);
     loadedState.caption = `Loaded ${slotName(slot)}.`;
+    loadedState.captionId = gameState.captionId + 1;
     loadedState.captionVisible = true;
     setGameState(loadedState);
     scheduleCaptionFade();
@@ -360,6 +372,7 @@ export function App() {
     nextState.roomId = roomId;
     if (!nextState.visitedRooms.includes(roomId)) nextState.visitedRooms.push(roomId);
     nextState.caption = rooms[roomId].description;
+    nextState.captionId += 1;
     nextState.captionVisible = true;
     saveToSlot(AUTO_SLOT, nextState);
     play("wood");
