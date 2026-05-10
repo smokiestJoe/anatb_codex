@@ -255,9 +255,9 @@ button:disabled {
   min-height: 100%;
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(10, 6, 5, 0.65), transparent 18%, transparent 82%, rgba(10, 6, 5, 0.65)),
-    repeating-linear-gradient(90deg, #2d1a13 0 34px, #41251a 34px 70px, #1d110d 70px 76px),
-    repeating-linear-gradient(0deg, rgba(255, 213, 130, 0.04) 0 3px, transparent 3px 18px);
+    linear-gradient(90deg, rgba(4, 2, 5, 0.72), rgba(4, 2, 5, 0.2) 18%, rgba(4, 2, 5, 0.2) 82%, rgba(4, 2, 5, 0.72)),
+    url("./assets/barnwood-side-fill.png") center / auto 100% repeat-x,
+    #120a10;
 }
 
 .stage {

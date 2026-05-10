@@ -70,7 +70,7 @@ const rooms = {
         id: "hiddenKey",
         name: "Door Key",
         verbs: ["pickup", "inspect"],
-        rect: { left: 47, top: 72.5, width: 8, height: 5 },
+        rect: { left: 48, top: 70, width: 8, height: 5 },
         visible: state => state.flags.matLifted && !state.flags.keyTaken
       }
     ]
@@ -123,7 +123,7 @@ const objectLayers = {
         },
         tossed: {
           src: "./src/assets/objects/doormat-tossed.png",
-          rect: { left: 50.2, top: 66.4, width: 38, height: 19.3 }
+          rect: { left: 50.2, top: 66.4, width: 42, height: 23 }
         }
       }
     },
@@ -134,7 +134,7 @@ const objectLayers = {
       assets: {
         visible: {
           src: "./src/assets/objects/barn-key.png",
-          rect: { left: 42.6, top: 68.1, width: 18.5, height: 9.3 }
+          rect: { left: 44, top: 65, width: 18.5, height: 9.3 }
         }
       }
     },
@@ -928,7 +928,7 @@ function renderStage(room) {
 
 function rectForObject(object) {
   if (state.roomId === "3,0,0" && object.id === "doorMat" && state.flags.matLifted) {
-    return { left: 61, top: 72, width: 13, height: 12 };
+    return { left: 61, top: 73.5, width: 16, height: 15 };
   }
 
   return object.rect;
